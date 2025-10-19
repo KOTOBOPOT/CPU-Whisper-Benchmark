@@ -3,3 +3,7 @@ benchmark/data
 .vscode
 
 venv/
+
+.env
+
+results/

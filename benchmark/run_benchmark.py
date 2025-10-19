@@ -26,7 +26,7 @@ except ImportError as exc:  # pragma: no cover - early, deterministic failure
 
 ANNOTATION_FILENAME = "annotation.csv"
 FILES_SUBDIR = "files"
-DEFAULT_ENDPOINT = "/transcribe"
+DEFAULT_ENDPOINT = "/process_audio"
 
 
 @dataclass

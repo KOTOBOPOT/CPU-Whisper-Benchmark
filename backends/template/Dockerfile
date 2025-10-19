@@ -7,10 +7,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY backends/template/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY backends/template/app ./app
+COPY utils ./utils
+
+ENV PYTHONPATH=/app
 
 ENV WHISPER_BACKEND_PORT=8000
 
