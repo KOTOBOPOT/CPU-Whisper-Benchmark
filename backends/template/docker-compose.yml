@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  whisper-backend-template:
+    build:
+      context: .
+    env_file:
+      - ../../.env
+    environment:
+      WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-/app/weights/mock.bin}
+    volumes:
+      - type: bind
+        source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./weights}
+        target: /app/weights
+    ports:
+      - "${WHISPER_BACKEND_PORT:-8000}:${WHISPER_BACKEND_PORT:-8000}"
+    restart: unless-stopped

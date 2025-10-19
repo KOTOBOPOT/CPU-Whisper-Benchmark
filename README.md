@@ -10,8 +10,22 @@ cp .env.example .env
 ```
 todo: finish quickstart
 
+### Отправка тестового аудио на API
+Запустите нужный бэкенд и выполните:
+
+```bash
+pip install -r backends/template/requirements.txt
+python debug_api.py benchmark/data/golos_1k/files/0a22c89ec1012ac8a81e14826dde661a.opus
+```
+
+Можно указать кастомный URL:
+
+```bash
+python debug_api.py /path/to/audio.wav --url http://127.0.0.1:9000/process_audio
+```
+
 ## Структура репозитория:
-- backends/ - папка с бекендами whisper. Для запуска бекенда должен быть файл backends/<exp_name>/start.sh, который соберет докер образ и стартует контейнер с бекендом модели. Порт для развертывания - переменная WHISPER_BACKEND_PORT в  глобальном .env файле. 
+- backends/ - папка с бекендами whisper. Для запуска бекенда должен быть файл backends/<exp_name>/start.sh, который соберет докер образ и стартует контейнер с бекендом модели. Порт для развертывания - переменная WHISPER_BACKEND_PORT в  глобальном .env файле. 
 - benchmark/ - папка с кодом бенчмарка. Для старта бенчмарка должен быть benchmark/start.sh, который будет слать запросы к api развернутой модели. Результат будет записан в папку results/<exp_name_bench_name>. В глобальном .env файле нужно указать название бенчмарка (BENCH_NAME). Датасет должен лежать в benchmark/data/<bench_name>/. 
 
 ## Система оценивания whisper
