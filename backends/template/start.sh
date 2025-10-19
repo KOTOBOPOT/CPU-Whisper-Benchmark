@@ -10,6 +10,12 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
+# Load variables from the project .env so docker compose picks up the port mapping
+set -a
+# shellcheck disable=SC1090
+source "${ENV_FILE}"
+set +a
+
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
 elif command -v docker-compose >/dev/null 2>&1; then
@@ -24,6 +30,6 @@ echo "Building and starting Whisper backend template container..."
 "${COMPOSE_CMD[@]}" up --build --remove-orphans -d
 
 CONTAINER_NAME="whisper-backend-template"
-PORT="${WHISPER_BACKEND_PORT:-8000}"
+PORT="${WHISPER_BACKEND_PORT:?WHISPER_BACKEND_PORT is not set in ${ENV_FILE}}"
 
 echo "${CONTAINER_NAME} is running on port ${PORT}."

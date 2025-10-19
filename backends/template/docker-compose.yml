@@ -13,5 +13,5 @@ services:
         source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./weights}
         target: /app/weights
     ports:
-      - "${WHISPER_BACKEND_PORT:-8000}:${WHISPER_BACKEND_PORT:-8000}"
+      - "${WHISPER_BACKEND_PORT:-7000}:${WHISPER_BACKEND_PORT:-7000}"
     restart: unless-stopped

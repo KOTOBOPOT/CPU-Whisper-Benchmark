@@ -10,7 +10,26 @@ from typing import Any
 
 import requests
 
-DEFAULT_PORT = os.getenv("WHISPER_BACKEND_PORT", "8000")
+
+def _get_backend_port() -> str:
+    if (env_port := os.getenv("WHISPER_BACKEND_PORT")):
+        return env_port
+
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.is_file():
+        for raw_line in env_path.read_text().splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            key, sep, value = line.partition("=")
+            if sep and key.strip() == "WHISPER_BACKEND_PORT":
+                return value.strip().strip("\"'")
+
+    return "7590"
+
+
+DEFAULT_PORT = _get_backend_port()
 DEFAULT_URL = f"http://0.0.0.0:{DEFAULT_PORT}/process_audio"
 
 
