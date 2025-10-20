@@ -20,6 +20,11 @@ todo: finish quickstart
 python debug_api.py <path to audio file>
 ```
 
+Для запуска бенчмарка сделайте:
+```
+./benchmark/start.sh
+```
+
 ## Структура репозитория:
 - backends/ - папка с бекендами whisper. Для запуска бекенда должен быть файл backends/<exp_name>/start.sh, который соберет докер образ и стартует контейнер с бекендом модели. Порт для развертывания - переменная WHISPER_BACKEND_PORT в  глобальном .env файле. 
 - benchmark/ - папка с кодом бенчмарка. Для старта бенчмарка должен быть benchmark/start.sh, который будет слать запросы к api развернутой модели. Результат будет записан в папку results/<exp_name_bench_name>. В глобальном .env файле нужно указать название бенчмарка (BENCH_NAME). Датасет должен лежать в benchmark/data/<bench_name>/. 
