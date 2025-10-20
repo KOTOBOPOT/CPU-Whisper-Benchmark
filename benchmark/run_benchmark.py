@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import mimetypes
 import sys
 import time
 from dataclasses import dataclass
@@ -137,7 +138,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--payload-key",
-        default="audio_file",
+        default="file",
         help="Multipart field name expected by the backend for audio payload.",
     )
     parser.add_argument(
@@ -289,7 +290,10 @@ def run(args: argparse.Namespace) -> None:
             continue
 
         with audio_path.open("rb") as file_handle:
-            files = {args.payload_key: (filename, file_handle, "application/octet-stream")}
+            mime_type, _ = mimetypes.guess_type(str(audio_path))
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+            files = {args.payload_key: (filename, file_handle, mime_type)}
             start_ts = time.perf_counter()
             try:
                 response = session.post(url, files=files, headers=headers, timeout=args.request_timeout)
