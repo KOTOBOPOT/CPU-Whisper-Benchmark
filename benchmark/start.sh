@@ -10,6 +10,7 @@ if [[ -f "${ENV_FILE}" ]]; then
   # shellcheck disable=SC1090
   source "${ENV_FILE}"
   set +a
+  echo "ENV_FILE: ${ENV_FILE}"
 fi
 
 : "${BENCH_NAME:?BENCH_NAME must be set (check .env).}"

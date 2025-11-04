@@ -7,3 +7,5 @@ venv/
 .env
 
 results/
+
+.DS_Store
