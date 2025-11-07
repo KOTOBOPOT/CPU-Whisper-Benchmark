@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse, urlunparse
+from tqdm import tqdm
 
 try:
     import requests
@@ -273,7 +274,7 @@ def run(args: argparse.Namespace) -> None:
     stats = RunningStats()
     predictions: List[SampleResult] = []
 
-    for index, (filename, reference) in enumerate(items, start=1):
+    for index, (filename, reference) in tqdm(enumerate(items, start=1)):
         audio_path = files_dir / filename
         if not audio_path.is_file():
             stats.update_failure()
