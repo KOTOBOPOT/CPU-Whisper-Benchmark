@@ -9,3 +9,5 @@ venv/
 results/
 
 .DS_Store
+
+results/
