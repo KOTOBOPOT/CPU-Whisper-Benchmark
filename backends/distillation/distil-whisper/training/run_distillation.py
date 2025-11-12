@@ -1204,8 +1204,14 @@ def main():
             return False
         elif len(norm_ground_truth) > 0 and whisper_transcript is not None:
             norm_whisper_transcript = normalizer(whisper_transcript)
-            wer = 100 * metric.compute(predictions=[norm_whisper_transcript], references=[norm_ground_truth])
-            return wer < wer_threshold
+            # Check if both normalized strings have words (not just characters) to avoid division by zero
+            # WER metric divides by number of words, not characters, so we need to check split()
+            if len(norm_whisper_transcript.split()) > 0 and len(norm_ground_truth.split()) > 0:
+                wer = 100 * metric.compute(predictions=[norm_whisper_transcript], references=[norm_ground_truth])
+                return wer < wer_threshold
+            else:
+                # filter out samples with empty normalized transcripts (no words after split)
+                return False
         else:
             # filter automatically since we can't know the WER
             return False

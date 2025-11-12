@@ -11,3 +11,8 @@ results/
 .DS_Store
 
 results/
+
+*.log
+
+*.wandb
+backends/distillation/distil-whisper/training/wandb/
