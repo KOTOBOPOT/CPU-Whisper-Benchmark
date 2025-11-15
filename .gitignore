@@ -16,3 +16,5 @@ results/
 
 *.wandb
 backends/distillation/distil-whisper/training/wandb/
+
+*.pyc

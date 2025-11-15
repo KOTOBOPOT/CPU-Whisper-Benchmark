@@ -8,15 +8,15 @@ services:
     env_file:
       - ../../../.env
     environment:
-      WHISPER_MODEL_CHECKPOINT_PATH: ${WHISPER_MODEL_CHECKPOINT_PATH:-/app/checkpoints/checkpoint-6100}
+      WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-/app/checkpoint/}
       WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
       WHISPER_DTYPE: ${WHISPER_DTYPE:-float32}
       WHISPER_LANGUAGE: ${WHISPER_LANGUAGE:-ru}
       WHISPER_TASK: ${WHISPER_TASK:-transcribe}
     volumes:
       - type: bind
-        source: ${LOCAL_WHISPER_CHECKPOINT_DIR:-./checkpoints}
-        target: /app/checkpoints
+        source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./checkpoints}
+        target: ${WHISPER_MODEL_WEIGHTS_PATH:-./app/checkpoint}
     ports:
       - "${WHISPER_BACKEND_PORT:-8001}:${WHISPER_BACKEND_PORT:-8001}"
     restart: unless-stopped

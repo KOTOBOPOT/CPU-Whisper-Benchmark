@@ -12,7 +12,7 @@ from utils.fastapi_app import create_app
 
 def _load_checkpoint_path() -> Optional[Path]:
     """Load checkpoint path from environment variable."""
-    env_value = os.getenv("WHISPER_MODEL_CHECKPOINT_PATH")
+    env_value = os.getenv("WHISPER_MODEL_WEIGHTS_PATH")
     if not env_value:
         return None
     return Path(env_value).expanduser().resolve()
