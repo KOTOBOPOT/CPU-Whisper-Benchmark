@@ -65,6 +65,10 @@ if [[ -n "${BENCH_ALLOW_BLANK_TEXT:-}" ]]; then
   esac
 fi
 
+if [[ -n "${BENCH_WORKERS:-}" ]]; then
+  ARGS+=("--workers" "${BENCH_WORKERS}")
+fi
+
 if [[ -n "${BENCH_EXTRA_HEADERS:-}" ]]; then
   mapfile -t HEADER_ITEMS < <(printf '%s' "${BENCH_EXTRA_HEADERS}" | tr ';' $'\n' | tr -d $'\r')
   for raw_header in "${HEADER_ITEMS[@]}"; do

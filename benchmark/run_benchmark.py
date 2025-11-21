@@ -12,6 +12,7 @@ import json
 import mimetypes
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -50,6 +51,7 @@ class RunningStats:
     wer_ref_words: int = 0
     cer_distance: int = 0
     cer_ref_chars: int = 0
+    total_wall_time_ms: float = 0.0  # Wall-clock time for throughput calculation
 
     def update_success(
         self,
@@ -73,6 +75,12 @@ class RunningStats:
         if self.processed == 0:
             return None
         return self.total_latency_ms / self.processed
+
+    def throughput(self) -> Optional[float]:
+        """Calculate throughput in requests per second."""
+        if self.total_wall_time_ms == 0:
+            return None
+        return (self.processed + self.failed) / (self.total_wall_time_ms / 1000.0)
 
     def wer(self) -> Optional[float]:
         if self.wer_ref_words == 0:
@@ -151,6 +159,12 @@ def parse_args() -> argparse.Namespace:
         "--allow-blank-text",
         action="store_true",
         help="If set, blank hypotheses are treated as valid (WER counts them).",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of parallel workers for concurrent requests (default: 1 = sequential).",
     )
     return parser.parse_args()
 
@@ -256,6 +270,68 @@ def extract_text(payload: object, key: str) -> str:
     raise ValueError(f"Could not extract transcription text with key '{key}'. Response: {payload}")
 
 
+def process_single_request(
+    filename: str,
+    reference: str,
+    files_dir: Path,
+    url: str,
+    headers: Dict[str, str],
+    payload_key: str,
+    text_key: str,
+    allow_blank_text: bool,
+    request_timeout: float,
+    session: requests.Session,
+) -> SampleResult:
+    """Process a single audio file request.
+    
+    Returns:
+        SampleResult with transcription and metrics
+    """
+    audio_path = files_dir / filename
+    if not audio_path.is_file():
+        return SampleResult(
+            filename=filename,
+            reference=reference,
+            hypothesis="",
+            latency_ms=0.0,
+            status="missing_file",
+            error=f"Audio file not found: {audio_path}",
+        )
+
+    try:
+        with audio_path.open("rb") as file_handle:
+            mime_type, _ = mimetypes.guess_type(str(audio_path))
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+            files = {payload_key: (filename, file_handle, mime_type)}
+            start_ts = time.perf_counter()
+            response = session.post(url, files=files, headers=headers, timeout=request_timeout)
+            latency_ms = (time.perf_counter() - start_ts) * 1000
+            response.raise_for_status()
+            payload = response.json()
+            hypothesis = extract_text(payload, text_key)
+            if not allow_blank_text and not hypothesis:
+                raise ValueError("Backend returned empty transcription text.")
+            wer_dist, ref_words, cer_dist, ref_chars = compute_distances(reference, hypothesis)
+            return SampleResult(
+                filename=filename,
+                reference=reference,
+                hypothesis=hypothesis,
+                latency_ms=latency_ms,
+                status="ok",
+            )
+    except Exception as error:  # noqa: BLE001
+        latency_ms = (time.perf_counter() - start_ts) if 'start_ts' in locals() else 0.0
+        return SampleResult(
+            filename=filename,
+            reference=reference,
+            hypothesis="",
+            latency_ms=latency_ms * 1000,
+            status="error",
+            error=str(error),
+        )
+
+
 def run(args: argparse.Namespace) -> None:
     annotation_path, files_dir = ensure_dataset_paths(args.data_root, args.bench_name)
     items = load_annotation(annotation_path)
@@ -274,62 +350,56 @@ def run(args: argparse.Namespace) -> None:
     stats = RunningStats()
     predictions: List[SampleResult] = []
 
-    for index, (filename, reference) in tqdm(enumerate(items, start=1)):
-        audio_path = files_dir / filename
-        if not audio_path.is_file():
-            stats.update_failure()
-            predictions.append(
-                SampleResult(
-                    filename=filename,
-                    reference=reference,
-                    hypothesis="",
-                    latency_ms=0.0,
-                    status="missing_file",
-                    error=f"Audio file not found: {audio_path}",
-                )
-            )
-            continue
+    # Start wall-clock timer for throughput calculation
+    wall_start = time.perf_counter()
 
-        with audio_path.open("rb") as file_handle:
-            mime_type, _ = mimetypes.guess_type(str(audio_path))
-            if mime_type is None:
-                mime_type = "application/octet-stream"
-            files = {args.payload_key: (filename, file_handle, mime_type)}
-            start_ts = time.perf_counter()
-            try:
-                response = session.post(url, files=files, headers=headers, timeout=args.request_timeout)
-                latency_ms = (time.perf_counter() - start_ts) * 1000
-                response.raise_for_status()
-                payload = response.json()
-                hypothesis = extract_text(payload, args.text_key)
-                if not args.allow_blank_text and not hypothesis:
-                    raise ValueError("Backend returned empty transcription text.")
-                wer_dist, ref_words, cer_dist, ref_chars = compute_distances(reference, hypothesis)
-                stats.update_success(latency_ms, wer_dist, ref_words, cer_dist, ref_chars)
-                predictions.append(
-                    SampleResult(
-                        filename=filename,
-                        reference=reference,
-                        hypothesis=hypothesis,
-                        latency_ms=latency_ms,
-                        status="ok",
-                    )
-                )
-            except Exception as error:  # noqa: BLE001 - broad to capture network/parse issues
+    if args.workers == 1:
+        # Sequential processing (original behavior)
+        for filename, reference in tqdm(items, desc="Processing"):
+            result = process_single_request(
+                filename, reference, files_dir, url, headers,
+                args.payload_key, args.text_key, args.allow_blank_text,
+                args.request_timeout, session
+            )
+            predictions.append(result)
+            
+            if result.status == "ok":
+                wer_dist, ref_words, cer_dist, ref_chars = compute_distances(result.reference, result.hypothesis)
+                stats.update_success(result.latency_ms, wer_dist, ref_words, cer_dist, ref_chars)
+            else:
                 stats.update_failure()
-                latency_ms = (time.perf_counter() - start_ts) * 1000
-                predictions.append(
-                    SampleResult(
-                        filename=filename,
-                        reference=reference,
-                        hypothesis="",
-                        latency_ms=latency_ms,
-                        status="error",
-                        error=str(error),
-                    )
-                )
-        if args.sleep > 0:
-            time.sleep(args.sleep)
+            
+            if args.sleep > 0:
+                time.sleep(args.sleep)
+    else:
+        # Parallel processing with ThreadPoolExecutor
+        print(f"Processing with {args.workers} parallel workers...")
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            # Submit all tasks
+            future_to_item = {
+                executor.submit(
+                    process_single_request,
+                    filename, reference, files_dir, url, headers,
+                    args.payload_key, args.text_key, args.allow_blank_text,
+                    args.request_timeout, session
+                ): (filename, reference)
+                for filename, reference in items
+            }
+            
+            # Collect results as they complete
+            for future in tqdm(as_completed(future_to_item), total=len(items), desc="Processing"):
+                result = future.result()
+                predictions.append(result)
+                
+                if result.status == "ok":
+                    wer_dist, ref_words, cer_dist, ref_chars = compute_distances(result.reference, result.hypothesis)
+                    stats.update_success(result.latency_ms, wer_dist, ref_words, cer_dist, ref_chars)
+                else:
+                    stats.update_failure()
+
+    # Calculate total wall-clock time
+    wall_end = time.perf_counter()
+    stats.total_wall_time_ms = (wall_end - wall_start) * 1000
 
     write_outputs(args, predictions, stats, len(items))
 
@@ -367,6 +437,8 @@ def write_outputs(
         "processed_samples": stats.processed,
         "failed_samples": stats.failed,
         "average_latency_ms": stats.average_latency(),
+        "throughput_rps": stats.throughput(),
+        "total_wall_time_ms": stats.total_wall_time_ms,
         "wer": stats.wer(),
         "cer": stats.cer(),
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -382,6 +454,8 @@ def write_outputs(
         f"Samples processed: {stats.processed}",
         f"Samples failed: {stats.failed}",
         f"Average latency (ms): {stats.average_latency():.2f}" if stats.average_latency() is not None else "Average latency (ms): n/a",
+        f"Throughput (req/s): {stats.throughput():.2f}" if stats.throughput() is not None else "Throughput (req/s): n/a",
+        f"Total wall time (s): {stats.total_wall_time_ms / 1000:.2f}",
         f"WER: {stats.wer():.4f}" if stats.wer() is not None else "WER: n/a",
         f"CER: {stats.cer():.4f}" if stats.cer() is not None else "CER: n/a",
     ]

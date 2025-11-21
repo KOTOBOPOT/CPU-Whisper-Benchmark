@@ -1,0 +1,7 @@
+fastapi>=0.109,<0.112
+uvicorn[standard]>=0.27,<0.30
+python-multipart>=0.0.9,<0.0.10
+requests>=2.31,<3.0
+torch>=2.0.0
+transformers>=4.21.0
+librosa>=0.9.0

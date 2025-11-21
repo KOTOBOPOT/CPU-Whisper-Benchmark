@@ -1,0 +1,18 @@
+services:
+  whisper-backend-pytorch-dynamic:
+    build:
+      context: ../..
+      dockerfile: backends/whisper-pytorch-dynamic/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-}
+      WHISPER_WORKERS: ${WHISPER_WORKERS:-4}
+      WHISPER_BACKEND_PORT: ${WHISPER_BACKEND_PORT:-7000}
+    volumes:
+      - type: bind
+        source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./weights}
+        target: /app/weights
+    ports:
+      - "${WHISPER_BACKEND_PORT:-7000}:${WHISPER_BACKEND_PORT:-7000}"
+    restart: unless-stopped

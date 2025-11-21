@@ -1,0 +1,22 @@
+services:
+  whisper-backend-cpp-q5_0:
+    build:
+      context: ../..
+      dockerfile: backends/whisper-cpp-q5_0/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-}
+      WHISPER_WORKERS: ${WHISPER_WORKERS:-4}
+      WHISPER_BACKEND_PORT: ${WHISPER_BACKEND_PORT:-7000}
+      WHISPER_CPP_BIN: /usr/local/bin/whisper-cli
+      WHISPER_CPP_THREADS: ${WHISPER_CPP_THREADS:-12}
+    volumes:
+      # Монтируем весь каталог weights из корня проекта (контекст сборки = ../..)
+      - type: bind
+        source: ../../weights
+        target: /app/weights
+        read_only: true
+    ports:
+      - "${WHISPER_BACKEND_PORT:-7000}:${WHISPER_BACKEND_PORT:-7000}"
+    restart: unless-stopped

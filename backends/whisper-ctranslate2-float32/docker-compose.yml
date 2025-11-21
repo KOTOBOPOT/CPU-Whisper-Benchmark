@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  whisper-backend-ctranslate2-float32:
+    build:
+      context: ../..
+      dockerfile: backends/whisper-ctranslate2-float32/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-}
+      WHISPER_WORKERS: ${WHISPER_WORKERS:-4}
+      WHISPER_BACKEND_PORT: ${WHISPER_BACKEND_PORT:-7000}
+    volumes:
+      - type: bind
+        source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./weights}
+        target: /app/weights
+    ports:
+      - "${WHISPER_BACKEND_PORT:-7000}:${WHISPER_BACKEND_PORT:-7000}"
+    restart: unless-stopped
+
