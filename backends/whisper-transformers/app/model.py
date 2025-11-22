@@ -15,13 +15,15 @@ from transformers import AutoProcessor, WhisperForConditionalGeneration
 class WhisperModel:
     """Whisper model using HuggingFace transformers with openai/whisper-small."""
 
-    def __init__(self, weights_path: Optional[Path]) -> None:
+    def __init__(self, weights_path: Optional[Path], model_name: Optional[str] = None) -> None:
         self.weights_path = weights_path
         
-        # Use custom weights path if provided, otherwise use default model
+        # Use custom weights path if provided, otherwise use model_name or default model
         if weights_path is not None and weights_path.exists():
             logging.info("Loading model from weights at %s", weights_path)
             model_name = str(weights_path)
+        elif model_name:
+            logging.info("Loading model %s", model_name)
         else:
             logging.info("Loading default openai/whisper-small model")
             model_name = "openai/whisper-small"

@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  whisper-backend-cpp:
+    build:
+      context: ../..
+      dockerfile: backends/benchmark_cpp/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      WHISPER_MODEL_PATH: ${WHISPER_MODEL_PATH:-/app/models/whisper-base-onnx}
+      WHISPER_CPP_BINARY_PATH: ${WHISPER_CPP_BINARY_PATH:-/app/whisper_benchmark}
+      WHISPER_NUM_THREADS: ${WHISPER_NUM_THREADS:-4}
+      WHISPER_BACKEND_PORT: ${WHISPER_BACKEND_PORT:-8005}
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+    volumes:
+      - type: bind
+        source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./models}
+        target: /app/models
+    ports:
+      - "${WHISPER_BACKEND_PORT:-8005}:${WHISPER_BACKEND_PORT:-8005}"
+    restart: unless-stopped

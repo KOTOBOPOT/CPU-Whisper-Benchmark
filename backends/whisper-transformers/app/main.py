@@ -17,5 +17,9 @@ def _load_weights_path() -> Optional[Path]:
     return Path(env_value).expanduser().resolve()
 
 
-model = WhisperModel(weights_path=_load_weights_path())
+def _load_model_name() -> Optional[str]:
+    return os.getenv("WHISPER_MODEL_NAME")
+
+
+model = WhisperModel(weights_path=_load_weights_path(), model_name=_load_model_name())
 app = create_app(model)
