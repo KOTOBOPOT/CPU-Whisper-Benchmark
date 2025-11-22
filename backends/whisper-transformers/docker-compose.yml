@@ -9,6 +9,7 @@ services:
       - ../../.env
     environment:
       WHISPER_MODEL_WEIGHTS_PATH: ${WHISPER_MODEL_WEIGHTS_PATH:-}
+      WHISPER_MODEL_NAME: ${WHISPER_MODEL_NAME:-}
     volumes:
       - type: bind
         source: ${LOCAL_WHISPER_WEIGHTS_DIR:-./weights}

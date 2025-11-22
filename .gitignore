@@ -1,20 +1,81 @@
-benchmark/data
+# Data and datasets
+benchmark/data/
+backends/benchmark_cpp/data/*_extracted/
+backends/benchmark_cpp/data/*.zip
+__MACOSX/
 
-.vscode
+# ONNX models (large files)
+backends/benchmark_cpp/models/whisper-*-onnx/
+*.onnx
 
-venv/
+# Keep only README in models directory
+!backends/benchmark_cpp/models/README.md
 
-.env
-
+# Results and benchmarks
 results/
-
-.DS_Store
-
-results/
-
 *.log
+*.png
+*.jpg
+benchmark_*.log
 
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Wandb
 *.wandb
 backends/distillation/distil-whisper/training/wandb/
 
-*.pyc
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.#*
+
+# C++ build artifacts
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe

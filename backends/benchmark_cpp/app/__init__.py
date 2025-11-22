@@ -1,0 +1,1 @@
+"""C++ Whisper backend FastAPI application package."""
